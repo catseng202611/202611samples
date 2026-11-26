@@ -1,0 +1,12 @@
+h1 , h2 {
+    font-size: 13px;
+}
+
+input[type="text"] {
+    width: 200px;
+    height: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px;
+    font-size: 50px;
+}

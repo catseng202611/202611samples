@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSS Grid 互動教學</title>
+<style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0 auto; padding: 1rem; max-width: 1000px; color: #243447; }
+    h1 { margin-bottom: .4rem; }
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 1rem; margin: 1rem 0; }
+    label { display: block; font-weight: bold; }
+    select, input, button { font: inherit; padding: .4rem; }
+    select { display: block; width: 100%; margin-top: .3rem; }
+    input[type=range] { width: 100%; }
+    button { cursor: pointer; margin: .4rem .5rem .4rem 0; }
+    .viewport { overflow: auto; border: 1px solid #aaa; }
+    .container { height: 320px; min-width: 340px; background: #eee; }
+    .item { background: steelblue; color: white; text-align: center; font-size: 1.6rem; outline: 1px solid #ffffff70; }
+    .item:nth-child(2) { background: #27637a; }
+    pre { background: #f1f5f9; padding: 1rem; overflow: auto; line-height: 1.5; }
+    .note { color: #46566a; }
+</style>
+</head>
+<body>
+<h1>CSS Grid 互動教學</h1>
+<p>先用固定尺寸觀察整體對齊，再用 fr 觀察空間比例。</p>
+<div class="viewport"><div class="container" id="demo"><div class="item">A</div>
+<div class="item double">B</div>
+<div class="item">C</div>
+<div class="item">D</div>
+<div class="item">E</div>
+<div class="item">F</div></div></div>
+<div class="controls" id="controls"></div>
+<button id="reset">恢復預設值</button><button id="preset">切換為 fr 比例分配</button>
+<p class="note" id="note" aria-live="polite"></p>
+<h2>即時 CSS</h2>
+<pre><code id="css"></code></pre>
+<script>
+// 每個設定包含 CSS 屬性、中文說明、可選值及預設值。
+const settings = [
+    {
+        "key": "display",
+        "label": "排列模式",
+        "values": [
+            "block",
+            "grid"
+        ],
+        "default": "grid",
+        "target": "container"
+    },
+    {
+        "key": "grid-template-columns",
+        "label": "欄寬與欄數",
+        "values": [
+            "80px 80px 80px",
+            "100px 100px 100px",
+            "repeat(3, 1fr)",
+            "1fr 2fr 1fr",
+            "repeat(2, 1fr)",
+            "repeat(4, 1fr)"
+        ],
+        "default": "80px 80px 80px",
+        "target": "container"
+    },
+    {
+        "key": "grid-template-rows",
+        "label": "列高與列數",
+        "values": [
+            "80px 80px",
+            "100px 100px",
+            "1fr 1fr",
+            "1fr 2fr"
+        ],
+        "default": "80px 80px",
+        "target": "container"
+    },
+    {
+        "key": "justify-items",
+        "label": "格內水平對齊",
+        "values": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+        ],
+        "default": "stretch",
+        "target": "container"
+    },
+    {
+        "key": "align-items",
+        "label": "格內垂直對齊",
+        "values": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+        ],
+        "default": "stretch",
+        "target": "container"
+    },
+    {
+        "key": "justify-content",
+        "label": "整體水平對齊",
+        "values": [
+            "start",
+            "center",
+            "end",
+            "space-between",
+            "space-around",
+            "space-evenly"
+        ],
+        "default": "center",
+        "target": "container"
+    },
+    {
+        "key": "align-content",
+        "label": "整體垂直對齊",
+        "values": [
+            "start",
+            "center",
+            "end",
+            "space-between",
+            "space-around",
+            "space-evenly"
+        ],
+        "default": "center",
+        "target": "container"
+    },
+    {
+        "key": "gap",
+        "label": "間距",
+        "values": [
+            "0",
+            "0.5rem",
+            "1rem",
+            "2rem"
+        ],
+        "default": "1rem",
+        "target": "container"
+    },
+    {
+        "key": "grid-column",
+        "label": "B 跨欄",
+        "values": [
+            "auto",
+            "span 2"
+        ],
+        "default": "auto",
+        "target": "item"
+    },
+    {
+        "key": "grid-row",
+        "label": "B 跨列",
+        "values": [
+            "auto",
+            "span 2"
+        ],
+        "default": "auto",
+        "target": "item"
+    }
+];
+const preset = {"grid-template-columns": "1fr 2fr 1fr", "grid-template-rows": "1fr 1fr"};
+const demo = document.getElementById('demo');
+const controls = document.getElementById('controls');
+const inputs = {};
+
+// 建立控制項，修改後立即更新預覽。
+for (const s of settings) {
+    const label = document.createElement('label');
+    label.textContent = s.key + '（' + s.label + '）';
+    const select = document.createElement('select');
+    for (const value of s.values) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+    }
+    select.value = s.default;
+    select.addEventListener('change', update);
+    label.appendChild(select);
+    controls.appendChild(label);
+    inputs[s.key] = select;
+}
+
+function update() {
+    let css = '.container {\n    height: 320px;\n';
+    for (const s of settings) {
+        if (s.target !== 'container') continue;
+        const value = inputs[s.key].value;
+        demo.style.setProperty(s.key, value);
+        css += '    /* ' + s.label + ' */\n    ' + s.key + ': ' + value + ';\n';
+    }
+    css += '}\n\n';
+    const b = demo.children[1];
+    b.style.gridColumn = inputs['grid-column'].value;
+    b.style.gridRow = inputs['grid-row'].value;
+    css += '.double {\n    grid-column: ' + b.style.gridColumn + ';\n    grid-row: ' + b.style.gridRow + ';\n}';
+    document.getElementById('note').textContent = inputs.display.value === 'block' ? 'block 模式下，Grid 排列屬性不生效。' : 'items 管格內，content 管整體。使用固定 px 可觀察整體對齊；使用 fr 填滿空間後，content 的效果可能不明顯。跨欄或跨列可能產生額外的隱含列。';
+    document.getElementById('css').textContent = css;
+}
+
+function apply(values) {
+    for (const s of settings) {
+        inputs[s.key].value = values[s.key] ?? s.default;
+    }
+    update();
+}
+document.getElementById('reset').addEventListener('click', () => apply({}));
+document.getElementById('preset').addEventListener('click', () => apply(preset));
+update();
+</script>
+</body>
+</html>

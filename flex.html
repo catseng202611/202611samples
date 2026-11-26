@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flexbox 互動教學</title>
+<style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0 auto; padding: 1rem; max-width: 1000px; color: #243447; }
+    h1 { margin-bottom: .4rem; }
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 1rem; margin: 1rem 0; }
+    label { display: block; font-weight: bold; }
+    select, input, button { font: inherit; padding: .4rem; }
+    select { display: block; width: 100%; margin-top: .3rem; }
+    input[type=range] { width: 100%; }
+    button { cursor: pointer; margin: .4rem .5rem .4rem 0; }
+    .viewport { overflow: auto; border: 1px solid #aaa; }
+    .container { height: 320px; min-width: 340px; background: #eee; }
+    .item { background: steelblue; color: white; text-align: center; font-size: 1.6rem; outline: 1px solid #ffffff70; }
+    .item:nth-child(2) { background: #27637a; }
+    pre { background: #f1f5f9; padding: 1rem; overflow: auto; line-height: 1.5; }
+    .note { color: #46566a; }
+</style>
+</head>
+<body>
+<h1>Flexbox 互動教學</h1>
+<p>調整父容器的排列方式，以及子元素的空間分配比例。</p>
+<div class="viewport"><div class="container" id="demo"><div class="item">A</div>
+<div class="item double">B</div>
+<div class="item">C</div></div></div>
+<div class="controls" id="controls"></div>
+<button id="reset">恢復預設值</button><button id="preset">比例分配 1 : 2 : 1</button>
+<p class="note" id="note" aria-live="polite"></p>
+<h2>即時 CSS</h2>
+<pre><code id="css"></code></pre>
+<script>
+// 每個設定包含 CSS 屬性、中文說明、可選值及預設值。
+const settings = [
+    {
+        "key": "display",
+        "label": "排列模式",
+        "values": [
+            "block",
+            "flex"
+        ],
+        "default": "flex",
+        "target": "container"
+    },
+    {
+        "key": "flex-direction",
+        "label": "主軸方向",
+        "values": [
+            "row",
+            "column",
+            "row-reverse",
+            "column-reverse"
+        ],
+        "default": "row",
+        "target": "container"
+    },
+    {
+        "key": "justify-content",
+        "label": "主軸對齊",
+        "values": [
+            "flex-start",
+            "center",
+            "flex-end",
+            "space-between",
+            "space-around",
+            "space-evenly"
+        ],
+        "default": "center",
+        "target": "container"
+    },
+    {
+        "key": "align-items",
+        "label": "交叉軸對齊",
+        "values": [
+            "flex-start",
+            "center",
+            "flex-end",
+            "stretch",
+            "baseline"
+        ],
+        "default": "center",
+        "target": "container"
+    },
+    {
+        "key": "gap",
+        "label": "間距",
+        "values": [
+            "0",
+            "0.5rem",
+            "1rem",
+            "2rem"
+        ],
+        "default": "1rem",
+        "target": "container"
+    },
+    {
+        "key": "flex-wrap",
+        "label": "換行",
+        "values": [
+            "nowrap",
+            "wrap"
+        ],
+        "default": "nowrap",
+        "target": "container"
+    },
+    {
+        "key": "width",
+        "label": "子元素寬度",
+        "values": [
+            "80px",
+            "120px",
+            "180px",
+            "auto"
+        ],
+        "default": "80px",
+        "target": "item"
+    },
+    {
+        "key": "height",
+        "label": "子元素高度",
+        "values": [
+            "80px",
+            "120px",
+            "auto"
+        ],
+        "default": "80px",
+        "target": "item"
+    },
+    {
+        "key": "flex",
+        "label": "子元素空間分配",
+        "values": [
+            "0 1 auto",
+            "1",
+            "2"
+        ],
+        "default": "0 1 auto",
+        "target": "item"
+    },
+    {
+        "key": "B flex",
+        "label": "B 的分配比例",
+        "values": [
+            "同其他元素",
+            "1",
+            "2",
+            "3"
+        ],
+        "default": "同其他元素",
+        "target": "item"
+    }
+];
+const preset = {"flex": "1", "B flex": "2", "width": "auto"};
+const demo = document.getElementById('demo');
+const controls = document.getElementById('controls');
+const inputs = {};
+
+// 建立控制項，修改後立即更新預覽。
+for (const s of settings) {
+    const label = document.createElement('label');
+    label.textContent = s.key + '（' + s.label + '）';
+    const select = document.createElement('select');
+    for (const value of s.values) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+    }
+    select.value = s.default;
+    select.addEventListener('change', update);
+    label.appendChild(select);
+    controls.appendChild(label);
+    inputs[s.key] = select;
+}
+
+function update() {
+    let css = '.container {\n    height: 320px;\n';
+    for (const s of settings) {
+        if (s.target !== 'container') continue;
+        const value = inputs[s.key].value;
+        demo.style.setProperty(s.key, value);
+        css += '    /* ' + s.label + ' */\n    ' + s.key + ': ' + value + ';\n';
+    }
+    css += '}\n\n';
+    const width = inputs.width.value;
+    const height = inputs.height.value;
+    const flex = inputs.flex.value;
+    const b = inputs['B flex'].value;
+    for (const item of demo.children) {
+        item.style.width = width;
+        item.style.height = height;
+        item.style.flex = flex;
+    }
+    if (b !== '同其他元素') demo.children[1].style.flex = b;
+    css += '.item {\n    width: ' + width + ';\n    height: ' + height + ';\n    flex: ' + flex + ';\n}';
+    if (b !== '同其他元素') css += '\n\n.double {\n    flex: ' + b + ';\n}';
+    document.getElementById('note').textContent = inputs.display.value === 'block' ? 'block 模式下，Flex 排列屬性不生效。' : 'direction 決定主軸；justify 管主軸，align 管交叉軸。flex 分配空間後，justify 的效果可能不明顯。stretch 需要交叉軸尺寸為 auto。';
+    document.getElementById('css').textContent = css;
+}
+
+function apply(values) {
+    for (const s of settings) {
+        inputs[s.key].value = values[s.key] ?? s.default;
+    }
+    update();
+}
+document.getElementById('reset').addEventListener('click', () => apply({}));
+document.getElementById('preset').addEventListener('click', () => apply(preset));
+update();
+</script>
+</body>
+</html>

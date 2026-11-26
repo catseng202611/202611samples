@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Flex & Grid Canvas 互動教學實驗室</title>
+    <!-- 引入 Tailwind CSS 與 Inter / Noto Sans TC 字體 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+        code, pre {
+            font-family: 'Fira Code', monospace;
+        }
+        /* 自訂捲軸樣式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        canvas {
+            touch-action: none; /* 防止觸控滑動干擾 Canvas 互動 */
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                    CSS Layout Canvas 實驗室
+                </h1>
+                <p class="text-xs text-slate-400 hidden sm:block">透過視覺化幾何畫布掌握 Flexbox 與 Grid 核心原理</p>
+            </div>
+        </div>
+
+        <!-- 模式切換 Tab -->
+        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button id="tab-flex" onclick="switchMode('flex')" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md">
+                Flexbox 一維排版
+            </button>
+            <button id="tab-grid" onclick="switchMode('grid')" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-white">
+                CSS Grid 二維網格
+            </button>
+        </div>
+    </header>
+
+    <!-- 主要工作區 -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- 左側：Canvas 視覺化模擬器與教學解析 -->
+        <section class="flex-1 flex flex-col p-4 sm:p-6 gap-4 overflow-y-auto">
+            
+            <!-- 快捷教學情境列 -->
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 border border-slate-800 p-3 rounded-2xl">
+                <div class="flex items-center gap-2 text-xs font-medium text-slate-400">
+                    <span class="px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">教學預設情境</span>
+                </div>
+                <div id="presets-container" class="flex flex-wrap gap-2">
+                    <!-- 動態生成預設情境按鈕 -->
+                </div>
+            </div>
+
+            <!-- Canvas 畫布容器 -->
+            <div class="relative flex-1 min-h-[380px] sm:min-h-[450px] bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col">
+                <!-- 畫布頂部圖例列 -->
+                <div class="px-4 py-2.5 bg-slate-950/60 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div id="canvas-legend" class="flex flex-wrap items-center gap-4">
+                        <!-- 動態圖例 -->
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
+                            <input type="checkbox" id="toggle-guides" checked onchange="renderCanvas()" class="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-indigo-500">
+                            <span>顯示輔助軸線/網格</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 實際 Canvas 畫布 -->
+                <div id="canvas-wrapper" class="relative flex-1 w-full h-full cursor-pointer">
+                    <canvas id="layoutCanvas" class="block w-full h-full"></canvas>
+                    
+                    <!-- 懸浮提示框 (Tooltip) -->
+                    <div id="canvas-tooltip" class="pointer-events-none opacity-0 transition-opacity duration-150 absolute bg-slate-950/95 border border-slate-700 text-slate-200 text-xs px-3 py-2 rounded-xl shadow-xl backdrop-blur-sm z-10">
+                    </div>
+                </div>
+
+                <!-- 底部項目增減控制列 -->
+                <div class="px-4 py-2.5 bg-slate-950/60 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <button onclick="updateItemCount(-1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition flex items-center gap-1">
+                            <span>− 減少子元素</span>
+                        </button>
+                        <span id="item-count-display" class="text-xs font-mono bg-slate-900 px-2.5 py-1 rounded border border-slate-800 text-cyan-400">6 個項目</span>
+                        <button onclick="updateItemCount(1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition flex items-center gap-1">
+                            <span>+ 增加子元素</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-400">💡 點擊畫布上的方塊可檢視尺寸與位置計算</p>
+                </div>
+            </div>
+
+            <!-- 觀念解說卡片 -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5">
+                <div class="flex items-start gap-3">
+                    <div class="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0 mt-0.5">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 id="concept-title" class="text-sm font-bold text-white mb-1">Flexbox 核心概念：主軸與交叉軸</h3>
+                        <p id="concept-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            Flexbox 是一維排版系統。設定 <code class="text-indigo-400">flex-direction</code> 會決定「主軸 (Main Axis)」的方向，而「交叉軸 (Cross Axis)」永遠與主軸垂直。所有的對齊屬性都是圍繞這兩條軸線運作的。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右側：屬性控制面板與即時 CSS 生成器 -->
+        <aside class="w-full lg:w-96 xl:w-[420px] bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col shrink-0">
+            
+            <!-- 控制面板標題 -->
+            <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    容器屬性控制面板
+                </h2>
+                <button onclick="resetCurrentMode()" class="text-xs text-slate-400 hover:text-white underline">
+                    重設預設值
+                </button>
+            </div>
+
+            <!-- 動態控制項區域 -->
+            <div id="controls-container" class="p-5 space-y-5 overflow-y-auto flex-1">
+                <!-- 由 JavaScript 根據 Flex 或 Grid 模式動態渲染 -->
+            </div>
+
+            <!-- 即時 CSS 程式碼輸出區 -->
+            <div class="p-4 bg-slate-950 border-t border-slate-800">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold text-slate-400">生成的 CSS 程式碼</span>
+                    <button id="copy-btn" onclick="copyCSS()" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>複製 CSS</span>
+                    </button>
+                </div>
+                <pre class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-emerald-400 overflow-x-auto leading-relaxed"><code id="css-output"></code></pre>
+            </div>
+        </aside>
+    </main>
+
+    <!-- 自訂提示訊息 Toast (取代 alert) -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-2xl text-sm font-medium transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span id="toast-msg">已複製到剪貼簿！</span>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 狀態管理與資料定義
+        // ==========================================
+        const state = {
+            mode: 'flex', // 'flex' 或 'grid'
+            itemCount: 6,
+            selectedItemIndex: null,
+            hoveredItemIndex: null,
+            // Flexbox 屬性狀態
+            flex: {
+                flexDirection: 'row',
+                justifyContent: 'flex-start',
+                alignItems: 'stretch',
+                flexWrap: 'wrap',
+                gap: 16
+            },
+            // Grid 屬性狀態
+            grid: {
+                columns: 3,
+                rows: 2,
+                justifyItems: 'stretch',
+                alignItems: 'stretch',
+                columnGap: 16,
+                rowGap: 16
+            },
+            // 儲存畫布上計算後的每個子元素座標與尺寸，供滑鼠/觸控互動檢測
+            computedBoxes: []
+        };
+
+        // 每個子元素的基礎模擬尺寸與色彩，讓排版變化更直觀
+        const itemPalette = [
+            { bg: '#3b82f6', border: '#60a5fa', baseW: 78, baseH: 64, label: 'Item 1' },
+            { bg: '#8b5cf6', border: '#a78bfa', baseW: 96, baseH: 82, label: 'Item 2' },
+            { bg: '#ec4899', border: '#f472b6', baseW: 72, baseH: 56, label: 'Item 3' },
+            { bg: '#10b981', border: '#34d399', baseW: 105, baseH: 74, label: 'Item 4' },
+            { bg: '#f59e0b', border: '#fbbf24', baseW: 84, baseH: 68, label: 'Item 5' },
+            { bg: '#06b6d4', border: '#22d3ee', baseW: 90, baseH: 60, label: 'Item 6' },
+            { bg: '#f43f5e', border: '#fb7185', baseW: 80, baseH: 76, label: 'Item 7' },
+            { bg: '#6366f1', border: '#818cf8', baseW: 94, baseH: 62, label: 'Item 8' },
+            { bg: '#14b8a6', border: '#2dd4bf', baseW: 86, baseH: 70, label: 'Item 9' }
+        ];
+
+        // 教學預設情境定義
+        const presets = {
+            flex: [
+                {
+                    name: '水平垂直置中',
+                    desc: '最經典的置中技巧！將主軸 (justify-content) 與交叉軸 (align-items) 皆設為 center。',
+                    config: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'nowrap', gap: 16 },
+                    count: 3
+                },
+                {
+                    name: '導覽列兩端對齊',
+                    desc: '使用 space-between 讓首尾項目貼齊容器邊緣，其餘空間平均分配。',
+                    config: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: 12 },
+                    count: 4
+                },
+                {
+                    name: '響應式自動換行',
+                    desc: '當空間不足時，flex-wrap: wrap 會讓項目自動折行至下一條主軸線。',
+                    config: { flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 },
+                    count: 7
+                },
+                {
+                    name: '垂直側邊欄排列',
+                    desc: '將 flex-direction 改為 column，主軸轉為垂直方向，適合製作選單或卡片內部。',
+                    config: { flexDirection: 'column', justifyContent: 'space-evenly', alignItems: 'center', flexWrap: 'nowrap', gap: 12 },
+                    count: 4
+                }
+            ],
+            grid: [
+                {
+                    name: '標準三欄卡片網格',
+                    desc: '使用 repeat(3, 1fr) 建立三個等寬軌道，搭配 gap 輕鬆控制卡片間距。',
+                    config: { columns: 3, rows: 2, justifyItems: 'stretch', alignItems: 'stretch', columnGap: 18, rowGap: 18 },
+                    count: 6
+                },
+                {
+                    name: '儲存格內容置中',
+                    desc: 'Grid 不僅能規劃大骨架，透過 justify-items 與 align-items 也能統一控制儲存格內元素的對齊。',
+                    config: { columns: 3, rows: 2, justifyItems: 'center', alignItems: 'center', columnGap: 16, rowGap: 16 },
+                    count: 6
+                },
+                {
+                    name: '四欄儀表板佈局',
+                    desc: '適合數據看板的多欄結構，所有項目整齊排列在二維座標交叉點上。',
+                    config: { columns: 4, rows: 2, justifyItems: 'stretch', alignItems: 'stretch', columnGap: 12, rowGap: 12 },
+                    count: 8
+                }
+            ]
+        };
+
+        // ==========================================
+        // 2. DOM 元素與初始化
+        // ==========================================
+        const canvas = document.getElementById('layoutCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+        const tooltip = document.getElementById('canvas-tooltip');
+
+        window.onload = function () {
+            setupCanvasEvents();
+            switchMode('flex');
+            window.addEventListener('resize', resizeCanvas);
+        };
+
+        // 調整 Canvas 解析度以支援高 DPI (Retina) 螢幕並填滿容器
+        function resizeCanvas() {
+            const rect = canvasWrapper.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            renderCanvas();
+        }
+
+        // ==========================================
+        // 3. 模式切換與 UI 渲染邏輯
+        // ==========================================
+        function switchMode(newMode) {
+            state.mode = newMode;
+            state.selectedItemIndex = null;
+
+            // 更新 Tab 樣式
+            const tabFlex = document.getElementById('tab-flex');
+            const tabGrid = document.getElementById('tab-grid');
+            if (newMode === 'flex') {
+                tabFlex.className = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md';
+                tabGrid.className = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-white';
+            } else {
+                tabGrid.className = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-cyan-600 text-white shadow-md';
+                tabFlex.className = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-white';
+            }
+
+            renderPresets();
+            renderControls();
+            renderLegend();
+            updateConceptCard();
+            updateCSSOutput();
+            resizeCanvas();
+        }
+
+        function renderPresets() {
+            const container = document.getElementById('presets-container');
+            const list = presets[state.mode];
+            container.innerHTML = list.map((p, idx) => `
+                <button onclick="applyPreset(${idx})" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition">
+                    ${p.name}
+                </button>
+            `).join('');
+        }
+
+        function applyPreset(idx) {
+            const preset = presets[state.mode][idx];
+            if (state.mode === 'flex') {
+                Object.assign(state.flex, preset.config);
+            } else {
+                Object.assign(state.grid, preset.config);
+            }
+            state.itemCount = preset.count;
+            document.getElementById('item-count-display').textContent = `${state.itemCount} 個項目`;
+            document.getElementById('concept-title').textContent = `情境解析：${preset.name}`;
+            document.getElementById('concept-desc').textContent = preset.desc;
+
+            renderControls();
+            updateCSSOutput();
+            renderCanvas();
+        }
+
+        function resetCurrentMode() {
+            applyPreset(0);
+            showToast('已重設為預設排版狀態');
+        }
+
+        function updateItemCount(delta) {
+            const next = state.itemCount + delta;
+            if (next >= 1 && next <= 9) {
+                state.itemCount = next;
+                state.selectedItemIndex = null;
+                document.getElementById('item-count-display').textContent = `${state.itemCount} 個項目`;
+                renderCanvas();
+            }
+        }
+
+        function renderLegend() {
+            const legend = document.getElementById('canvas-legend');
+            if (state.mode === 'flex') {
+                legend.innerHTML = `
+                    <span class="flex items-center gap-1.5 text-rose-400 font-medium">
+                        <span class="w-3 h-0.5 bg-rose-500 inline-block"></span> 主軸 (Main Axis)
+                    </span>
+                    <span class="flex items-center gap-1.5 text-cyan-400 font-medium">
+                        <span class="w-3 h-0.5 bg-cyan-400 border-b border-dashed inline-block"></span> 交叉軸 (Cross Axis)
+                    </span>
+                `;
+            } else {
+                legend.innerHTML = `
+                    <span class="flex items-center gap-1.5 text-cyan-400 font-medium">
+                        <span class="w-3 h-3 border border-dashed border-cyan-400/70 inline-block rounded-sm"></span> 網格軌道線 (Grid Tracks)
+                    </span>
+                    <span class="flex items-center gap-1.5 text-amber-400 font-medium">
+                        <span class="w-2.5 h-2.5 bg-amber-500/30 inline-block rounded-sm"></span> 軌道間距 (Gap)
+                    </span>
+                `;
+            }
+        }
+
+        function updateConceptCard(propName) {
+            const titleEl = document.getElementById('concept-title');
+            const descEl = document.getElementById('concept-desc');
+
+            const explanations = {
+                flexDirection: ['flex-direction (主軸方向)', '決定項目排列的方向。row 為水平從左到右，column 為垂直從上到下。注意：改變主軸方向時，justify-content 與 align-items 的作用方向也會隨之旋轉！'],
+                justifyContent: ['justify-content (主軸對齊)', '控制項目在「主軸」上的空間分配。例如 center 集中於中央，space-between 讓首尾貼齊兩側，space-around 則在每個項目兩側分配相等空間。'],
+                alignItems: ['align-items (交叉軸對齊)', '控制項目在「交叉軸」上的對齊方式。預設值 stretch 會將未指定固定高度（或寬度）的項目拉伸填滿整個交叉軸空間。'],
+                flexWrap: ['flex-wrap (換行控制)', '預設 nowrap 會強迫所有項目擠在同一行並自動縮小；設為 wrap 時，超出容器寬度的項目會優雅地換到下一行。'],
+                gap: ['gap (項目間距)', '直接在相鄰的 Flex 項目之間建立固定間距，無需再使用繁瑣的 margin 並處理首尾多餘邊距的問題。'],
+                columns: ['grid-template-columns (欄軌道定義)', '使用 repeat(N, 1fr) 將容器水平均分為 N 個彈性等分 (Fraction) 軌道。'],
+                rows: ['grid-template-rows (列軌道定義)', '定義垂直方向上的列軌道數量與高度比例，與欄軌道交織成二維網格儲存格 (Grid Cells)。'],
+                justifyItems: ['justify-items (儲存格水平對齊)', '決定項目在其所屬「網格儲存格 (Cell)」內的水平對齊方式（靠左、置中、靠右或拉伸填滿）。'],
+                gridAlignItems: ['align-items (儲存格垂直對齊)', '決定項目在其所屬「網格儲存格 (Cell)」內的垂直對齊方式（靠上、置中、靠下或拉伸填滿）。'],
+                columnGap: ['column-gap (欄間距)', '控制垂直網格軌道之間的水平留白寬度。'],
+                rowGap: ['row-gap (列間距)', '控制水平網格軌道之間的垂直留白高度。']
+            };
+
+            if (propName && explanations[propName]) {
+                titleEl.textContent = explanations[propName][0];
+                descEl.textContent = explanations[propName][1];
+            } else if (state.mode === 'flex') {
+                titleEl.textContent = 'Flexbox 核心概念：主軸與交叉軸';
+                descEl.textContent = 'Flexbox 是一維排版系統。紅色實線代表「主軸 (Main Axis)」，青色虛線代表「交叉軸 (Cross Axis)」。試著切換右側屬性，觀察項目如何沿著軸線移動！';
+            } else {
+                titleEl.textContent = 'CSS Grid 核心概念：二維網格系統';
+                descEl.textContent = 'CSS Grid 是強大的二維排版系統，能同時控制「欄 (Columns)」與「列 (Rows)」。青色虛線框代表每個獨立的網格儲存格 (Grid Cell)。';
+            }
+        }
+
+        // 動態生成右側控制面板
+        function renderControls() {
+            const container = document.getElementById('controls-container');
+            if (state.mode === 'flex') {
+                const f = state.flex;
+                container.innerHTML = `
+                    ${createSelectControl('flexDirection', 'flex-direction (主軸方向)', f.flexDirection, [
+                        { val: 'row', label: 'row (水平從左至右)' },
+                        { val: 'row-reverse', label: 'row-reverse (水平反轉)' },
+                        { val: 'column', label: 'column (垂直從上至下)' },
+                        { val: 'column-reverse', label: 'column-reverse (垂直反轉)' }
+                    ])}
+                    ${createSelectControl('justifyContent', 'justify-content (主軸對齊)', f.justifyContent, [
+                        { val: 'flex-start', label: 'flex-start (起點對齊)' },
+                        { val: 'center', label: 'center (主軸置中)' },
+                        { val: 'flex-end', label: 'flex-end (終點對齊)' },
+                        { val: 'space-between', label: 'space-between (兩端對齊)' },
+                        { val: 'space-around', label: 'space-around (周圍等距)' },
+                        { val: 'space-evenly', label: 'space-evenly (完全均分)' }
+                    ])}
+                    ${createSelectControl('alignItems', 'align-items (交叉軸對齊)', f.alignItems, [
+                        { val: 'stretch', label: 'stretch (拉伸填滿)' },
+                        { val: 'flex-start', label: 'flex-start (交叉軸起點)' },
+                        { val: 'center', label: 'center (交叉軸置中)' },
+                        { val: 'flex-end', label: 'flex-end (交叉軸終點)' }
+                    ])}
+                    ${createSelectControl('flexWrap', 'flex-wrap (換行設定)', f.flexWrap, [
+                        { val: 'nowrap', label: 'nowrap (不換行/自動壓縮)' },
+                        { val: 'wrap', label: 'wrap (空間不足時換行)' }
+                    ])}
+                    ${createRangeControl('gap', 'gap (項目間距)', f.gap, 0, 40, 'px')}
+                `;
+            } else {
+                const g = state.grid;
+                container.innerHTML = `
+                    ${createRangeControl('columns', 'grid-template-columns (欄數)', g.columns, 1, 5, ' 欄 (1fr)')}
+                    ${createRangeControl('rows', 'grid-template-rows (列數)', g.rows, 1, 4, ' 列 (1fr)')}
+                    ${createSelectControl('justifyItems', 'justify-items (儲存格水平對齊)', g.justifyItems, [
+                        { val: 'stretch', label: 'stretch (水平填滿儲存格)' },
+                        { val: 'start', label: 'start (儲存格靠左)' },
+                        { val: 'center', label: 'center (儲存格水平置中)' },
+                        { val: 'end', label: 'end (儲存格靠右)' }
+                    ])}
+                    ${createSelectControl('alignItems', 'align-items (儲存格垂直對齊)', g.alignItems, [
+                        { val: 'stretch', label: 'stretch (垂直填滿儲存格)' },
+                        { val: 'start', label: 'start (儲存格靠上)' },
+                        { val: 'center', label: 'center (儲存格垂直置中)' },
+                        { val: 'end', label: 'end (儲存格靠下)' }
+                    ])}
+                    ${createRangeControl('columnGap', 'column-gap (欄間距)', g.columnGap, 0, 40, 'px')}
+                    ${createRangeControl('rowGap', 'row-gap (列間距)', g.rowGap, 0, 40, 'px')}
+                `;
+            }
+        }
+
+        function createSelectControl(prop, label, currentVal, options) {
+            return `
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-300">${label}</label>
+                    <select onchange="handlePropChange('${prop}', this.value)" class="w-full bg-slate-950 border border-slate-700 hover:border-slate-600 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+                        ${options.map(opt => `<option value="${opt.val}" ${opt.val === currentVal ? 'selected' : ''}>${opt.label}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+        }
+
+        function createRangeControl(prop, label, currentVal, min, max, unit) {
+            return `
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-xs">
+                        <label class="font-semibold text-slate-300">${label}</label>
+                        <span class="font-mono text-indigo-400 font-semibold">${currentVal}${unit}</span>
+                    </div>
+                    <input type="range" min="${min}" max="${max}" value="${currentVal}" oninput="handlePropChange('${prop}', Number(this.value))" class="w-full accent-indigo-500 bg-slate-800 h-2 rounded-lg cursor-pointer">
+                </div>
+            `;
+        }
+
+        function handlePropChange(prop, value) {
+            if (state.mode === 'flex') {
+                state.flex[prop] = value;
+                updateConceptCard(prop);
+            } else {
+                state.grid[prop] = value;
+                updateConceptCard(prop === 'alignItems' ? 'gridAlignItems' : prop);
+            }
+            // 若是滑桿數值改變，更新旁邊的數值標籤
+            renderControls();
+            updateCSSOutput();
+            renderCanvas();
+        }
+
+        function updateCSSOutput() {
+            const output = document.getElementById('css-output');
+            if (state.mode === 'flex') {
+                const f = state.flex;
+                output.textContent = `.container {\n  display: flex;\n  flex-direction: ${f.flexDirection};\n  justify-content: ${f.justifyContent};\n  align-items: ${f.alignItems};\n  flex-wrap: ${f.flexWrap};\n  gap: ${f.gap}px;\n}`;
+            } else {
+                const g = state.grid;
+                output.textContent = `.container {\n  display: grid;\n  grid-template-columns: repeat(${g.columns}, 1fr);\n  grid-template-rows: repeat(${g.rows}, 1fr);\n  justify-items: ${g.justifyItems};\n  align-items: ${g.alignItems};\n  gap: ${g.rowGap}px ${g.columnGap}px;\n}`;
+            }
+        }
+
+        // ==========================================
+        // 4. Canvas 核心視覺化排版演算法與繪製引擎
+        // ==========================================
+        function renderCanvas() {
+            const rect = canvasWrapper.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            const showGuides = document.getElementById('toggle-guides').checked;
+
+            // 清空畫布
+            ctx.clearRect(0, 0, width, height);
+
+            // 繪製背景微網格點陣
+            drawBackgroundDots(width, height);
+
+            // 定義模擬容器的外框範圍 (留出邊距顯示標籤)
+            const padX = Math.max(24, width * 0.06);
+            const padY = Math.max(32, height * 0.08);
+            const boxX = padX;
+            const boxY = padY;
+            const boxW = width - padX * 2;
+            const boxH = height - padY * 2;
+
+            // 繪製容器外框 (.container)
+            ctx.save();
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+            ctx.strokeStyle = state.mode === 'flex' ? '#6366f1' : '#06b6d4';
+            ctx.lineWidth = 2;
+            roundRect(ctx, boxX, boxY, boxW, boxH, 14);
+            ctx.fill();
+            ctx.stroke();
+
+            // 容器左上角標籤
+            ctx.fillStyle = state.mode === 'flex' ? '#818cf8' : '#22d3ee';
+            ctx.font = '600 12px "Fira Code", monospace';
+            ctx.fillText(`.container (display: ${state.mode})`, boxX + 12, boxY - 10);
+            ctx.restore();
+
+            // 內部可用空間 (扣除容器內邊距 padding: 16px)
+            const innerPad = 16;
+            const innerX = boxX + innerPad;
+            const innerY = boxY + innerPad;
+            const innerW = Math.max(40, boxW - innerPad * 2);
+            const innerH = Math.max(40, boxH - innerPad * 2);
+
+            state.computedBoxes = [];
+
+            if (state.mode === 'flex') {
+                renderFlexSimulation(innerX, innerY, innerW, innerH, showGuides);
+            } else {
+                renderGridSimulation(innerX, innerY, innerW, innerH, showGuides);
+            }
+        }
+
+        // --- Flexbox 幾何排版計算與繪製 ---
+        function renderFlexSimulation(innerX, innerY, innerW, innerH, showGuides) {
+            const f = state.flex;
+            const isRow = f.flexDirection.startsWith('row');
+            const isReverse = f.flexDirection.endsWith('reverse');
+            const mainSize = isRow ? innerW : innerH;
+            const crossSize = isRow ? innerH : innerW;
+            const gap = f.gap;
+
+            // 準備子元素清單
+            let items = [];
+            for (let i = 0; i < state.itemCount; i++) {
+                const p = itemPalette[i % itemPalette.length];
+                items.push({
+                    index: i,
+                    label: `${i + 1}`,
+                    title: p.label,
+                    bg: p.bg,
+                    border: p.border,
+                    // 根據螢幕寬度做微幅縮放避免小螢幕溢出
+                    w: Math.min(p.baseW, innerW * 0.28),
+                    h: Math.min(p.baseH, innerH * 0.28)
+                });
+            }
+
+            // 1. 分行處理 (Flex Lines)
+            let lines = [];
+            let currentLine = [];
+            let currentMainUsed = 0;
+
+            items.forEach((item) => {
+                const itemMain = isRow ? item.w : item.h;
+                const needed = currentLine.length > 0 ? itemMain + gap : itemMain;
+
+                if (f.flexWrap === 'wrap' && currentLine.length > 0 && currentMainUsed + needed > mainSize) {
+                    lines.push(currentLine);
+                    currentLine = [item];
+                    currentMainUsed = itemMain;
+                } else {
+                    currentLine.push(item);
+                    currentMainUsed += needed;
+                }
+            });
+            if (currentLine.length > 0) lines.push(currentLine);
+
+            // 若為 nowrap 且總寬度超過容器，等比例壓縮項目主軸尺寸 (模擬 flex-shrink: 1)
+            if (f.flexWrap === 'nowrap' && lines.length === 1) {
+                const line = lines[0];
+                const totalGap = gap * Math.max(0, line.length - 1);
+                const totalItemMain = line.reduce((sum, it) => sum + (isRow ? it.w : it.h), 0);
+                if (totalItemMain + totalGap > mainSize && totalItemMain > 0) {
+                    const availableForItems = Math.max(10 * line.length, mainSize - totalGap);
+                    const scale = availableForItems / totalItemMain;
+                    line.forEach(it => {
+                        if (isRow) it.w *= scale;
+                        else it.h *= scale;
+                    });
+                }
+            }
+
+            // 計算每行的交叉軸高度
+            const lineCrossGap = lines.length > 1 ? gap : 0;
+            const totalLineCrossGap = lineCrossGap * Math.max(0, lines.length - 1);
+            const allocatedLineCross = (crossSize - totalLineCrossGap) / lines.length;
+
+            // 2. 逐行計算每個項目的精確座標
+            lines.forEach((line, lineIdx) => {
+                const orderedLine = isReverse ? [...line].reverse() : line;
+                const totalItemsMain = orderedLine.reduce((sum, it) => sum + (isRow ? it.w : it.h), 0);
+                const totalGaps = gap * Math.max(0, orderedLine.length - 1);
+                const freeSpace = mainSize - totalItemsMain - totalGaps;
+
+                let mainCursor = 0;
+                let stepGap = gap;
+
+                // 處理 justify-content 主軸對齊
+                switch (f.justifyContent) {
+                    case 'flex-start':
+                        mainCursor = 0;
+                        break;
+                    case 'flex-end':
+                        mainCursor = freeSpace;
+                        break;
+                    case 'center':
+                        mainCursor = freeSpace / 2;
+                        break;
+                    case 'space-between':
+                        mainCursor = 0;
+                        stepGap = orderedLine.length > 1 ? gap + freeSpace / (orderedLine.length - 1) : 0;
+                        break;
+                    case 'space-around':
+                        const aroundSpace = freeSpace / orderedLine.length;
+                        mainCursor = aroundSpace / 2;
+                        stepGap = gap + aroundSpace;
+                        break;
+                    case 'space-evenly':
+                        const evenlySpace = freeSpace / (orderedLine.length + 1);
+                        mainCursor = evenlySpace;
+                        stepGap = gap + evenlySpace;
+                        break;
+                }
+
+                const lineCrossStart = lineIdx * (allocatedLineCross + lineCrossGap);
+
+                orderedLine.forEach((item) => {
+                    let finalW = item.w;
+                    let finalH = item.h;
+                    let crossOffset = 0;
+
+                    // 處理 align-items 交叉軸對齊
+                    if (isRow) {
+                        if (f.alignItems === 'stretch') {
+                            finalH = allocatedLineCross;
+                            crossOffset = 0;
+                        } else if (f.alignItems === 'flex-start') {
+                            crossOffset = 0;
+                        } else if (f.alignItems === 'flex-end') {
+                            crossOffset = allocatedLineCross - finalH;
+                        } else if (f.alignItems === 'center') {
+                            crossOffset = (allocatedLineCross - finalH) / 2;
+                        }
+
+                        const x = innerX + mainCursor;
+                        const y = innerY + lineCrossStart + crossOffset;
+                        state.computedBoxes.push({ ...item, x, y, w: finalW, h: finalH });
+                        mainCursor += finalW + stepGap;
+                    } else {
+                        if (f.alignItems === 'stretch') {
+                            finalW = allocatedLineCross;
+                            crossOffset = 0;
+                        } else if (f.alignItems === 'flex-start') {
+                            crossOffset = 0;
+                        } else if (f.alignItems === 'flex-end') {
+                            crossOffset = allocatedLineCross - finalW;
+                        } else if (f.alignItems === 'center') {
+                            crossOffset = (allocatedLineCross - finalW) / 2;
+                        }
+
+                        const x = innerX + lineCrossStart + crossOffset;
+                        const y = innerY + mainCursor;
+                        state.computedBoxes.push({ ...item, x, y, w: finalW, h: finalH });
+                        mainCursor += finalH + stepGap;
+                    }
+                });
+            });
+
+            // 繪製所有子元素方塊
+            drawItems();
+
+            // 3. 繪製主軸與交叉軸視覺指示箭頭
+            if (showGuides) {
+                drawFlexAxes(innerX, innerY, innerW, innerH, isRow, isReverse);
+            }
+        }
+
+        function drawFlexAxes(x, y, w, h, isRow, isReverse) {
+            ctx.save();
+            // 主軸 (Main Axis - 紅色實線箭頭)
+            const mainColor = '#f43f5e';
+            if (isRow) {
+                const startX = isReverse ? x + w - 8 : x + 8;
+                const endX = isReverse ? x + 8 : x + w - 8;
+                const midY = y + h / 2;
+                drawArrow(startX, midY, endX, midY, mainColor, false, 'Main Axis (主軸)');
+            } else {
+                const startY = isReverse ? y + h - 8 : y + 8;
+                const endY = isReverse ? y + 8 : y + h - 8;
+                const midX = x + w / 2;
+                drawArrow(midX, startY, midX, endY, mainColor, false, 'Main Axis (主軸)');
+            }
+
+            // 交叉軸 (Cross Axis - 青色虛線箭頭)
+            const crossColor = '#22d3ee';
+            if (isRow) {
+                drawArrow(x + w / 2, y + 8, x + w / 2, y + h - 8, crossColor, true, 'Cross Axis (交叉軸)');
+            } else {
+                drawArrow(x + 8, y + h / 2, x + w - 8, y + h / 2, crossColor, true, 'Cross Axis (交叉軸)');
+            }
+            ctx.restore();
+        }
+
+        // --- CSS Grid 幾何排版計算與繪製 ---
+        function renderGridSimulation(innerX, innerY, innerW, innerH, showGuides) {
+            const g = state.grid;
+            const cols = g.columns;
+            const rows = Math.max(g.rows, Math.ceil(state.itemCount / cols)); // 若項目超出定義列數，自動建立隱式列 (Implicit Rows)
+
+            const totalColGap = g.columnGap * Math.max(0, cols - 1);
+            const totalRowGap = g.rowGap * Math.max(0, rows - 1);
+
+            const cellW = Math.max(20, (innerW - totalColGap) / cols);
+            const cellH = Math.max(20, (innerH - totalRowGap) / rows);
+
+            // 1. 繪製網格軌道線與 Gap 區域
+            if (showGuides) {
+                ctx.save();
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const cx = innerX + c * (cellW + g.columnGap);
+                        const cy = innerY + r * (cellH + g.rowGap);
+
+                        // 繪製儲存格虛線框
+                        ctx.strokeStyle = 'rgba(34, 211, 238, 0.35)';
+                        ctx.setLineDash([4, 4]);
+                        ctx.lineWidth = 1.2;
+                        ctx.strokeRect(cx, cy, cellW, cellH);
+
+                        // 標示儲存格座標 [Row, Col]
+                        ctx.fillStyle = 'rgba(148, 163, 184, 0.45)';
+                        ctx.font = '10px "Fira Code", monospace';
+                        ctx.fillText(`R${r + 1}:C${c + 1}`, cx + 6, cy + 14);
+                    }
+                }
+                ctx.restore();
+            }
+
+            // 2. 計算每個子元素在對應儲存格內的座標
+            for (let i = 0; i < state.itemCount; i++) {
+                const r = Math.floor(i / cols);
+                const c = i % cols;
+                const cellX = innerX + c * (cellW + g.columnGap);
+                const cellY = innerY + r * (cellH + g.rowGap);
+
+                const p = itemPalette[i % itemPalette.length];
+                let itemW = Math.min(p.baseW * 0.85, cellW * 0.85);
+                let itemH = Math.min(p.baseH * 0.85, cellH * 0.85);
+                let offsetX = 0;
+                let offsetY = 0;
+
+                // justify-items (水平對齊)
+                if (g.justifyItems === 'stretch') {
+                    itemW = cellW;
+                    offsetX = 0;
+                } else if (g.justifyItems === 'start') {
+                    offsetX = 0;
+                } else if (g.justifyItems === 'end') {
+                    offsetX = cellW - itemW;
+                } else if (g.justifyItems === 'center') {
+                    offsetX = (cellW - itemW) / 2;
+                }
+
+                // align-items (垂直對齊)
+                if (g.alignItems === 'stretch') {
+                    itemH = cellH;
+                    offsetY = 0;
+                } else if (g.alignItems === 'start') {
+                    offsetY = 0;
+                } else if (g.alignItems === 'end') {
+                    offsetY = cellH - itemH;
+                } else if (g.alignItems === 'center') {
+                    offsetY = (cellH - itemH) / 2;
+                }
+
+                state.computedBoxes.push({
+                    index: i,
+                    label: `${i + 1}`,
+                    title: p.label,
+                    bg: p.bg,
+                    border: p.border,
+                    x: cellX + offsetX,
+                    y: cellY + offsetY,
+                    w: itemW,
+                    h: itemH
+                });
+            }
+
+            drawItems();
+        }
+
+        // 繪製所有計算完成的子元素方塊
+        function drawItems() {
+            state.computedBoxes.forEach((box) => {
+                const isSelected = state.selectedItemIndex === box.index;
+                const isHovered = state.hoveredItemIndex === box.index;
+
+                ctx.save();
+                // 方塊陰影
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+                ctx.shadowBlur = isSelected || isHovered ? 14 : 6;
+                ctx.shadowOffsetY = 3;
+
+                // 方塊填色
+                ctx.fillStyle = box.bg;
+                ctx.globalAlpha = isHovered ? 0.95 : 0.88;
+                roundRect(ctx, box.x, box.y, box.w, box.h, 10);
+                ctx.fill();
+
+                // 邊框 (選取時發光高亮)
+                ctx.shadowColor = 'transparent';
+                ctx.lineWidth = isSelected ? 3 : 1.5;
+                ctx.strokeStyle = isSelected ? '#ffffff' : box.border;
+                ctx.stroke();
+
+                // 中央編號文字
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 15px "Inter", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(box.label, box.x + box.w / 2, box.y + box.h / 2);
+
+                // 若空間足夠，在下方顯示即時像素寬高
+                if (box.w > 54 && box.h > 44) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+                    ctx.font = '10px "Fira Code", monospace';
+                    ctx.fillText(`${Math.round(box.w)}×${Math.round(box.h)}`, box.x + box.w / 2, box.y + box.h / 2 + 16);
+                }
+                ctx.restore();
+            });
+        }
+
+        // ==========================================
+        // 5. 輔助繪圖工具函式
+        // ==========================================
+        function roundRect(ctx, x, y, width, height, radius) {
+            const r = Math.min(radius, width / 2, height / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + width, y, x + width, y + height, r);
+            ctx.arcTo(x + width, y + height, x, y + height, r);
+            ctx.arcTo(x, y + height, x, y, r);
+            ctx.arcTo(x, y, x + width, y, r);
+            ctx.closePath();
+        }
+
+        function drawBackgroundDots(w, h) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.12)';
+            const step = 24;
+            for (let x = step; x < w; x += step) {
+                for (let y = step; y < h; y += step) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 1, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+        }
+
+        function drawArrow(fromX, fromY, toX, toY, color, isDashed, label) {
+            const headLen = 10;
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 2;
+            if (isDashed) ctx.setLineDash([6, 4]);
+
+            // 畫線
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+
+            // 畫箭頭頭部
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+
+            // 軸線標籤底色膠囊
+            if (label) {
+                const labelX = isDashed ? fromX + 12 : (fromX + toX) / 2;
+                const labelY = isDashed ? fromY + 22 : fromY - 12;
+                ctx.font = 'bold 11px "Inter", "Noto Sans TC", sans-serif';
+                const textW = ctx.measureText(label).width;
+
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                roundRect(ctx, labelX - textW / 2 - 6, labelY - 9, textW + 12, 18, 6);
+                ctx.fill();
+
+                ctx.fillStyle = color;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, labelX, labelY);
+            }
+            ctx.restore();
+        }
+
+        // ==========================================
+        // 6. Canvas 滑鼠與觸控互動事件
+        // ==========================================
+        function setupCanvasEvents() {
+            const getPointerPos = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - rect.left, y: clientY - rect.top };
+            };
+
+            const findHitBox = (pos) => {
+                // 從最上層元素往回找
+                for (let i = state.computedBoxes.length - 1; i >= 0; i--) {
+                    const b = state.computedBoxes[i];
+                    if (pos.x >= b.x && pos.x <= b.x + b.w && pos.y >= b.y && pos.y <= b.y + b.h) {
+                        return b;
+                    }
+                }
+                return null;
+            };
+
+            canvas.addEventListener('mousemove', (e) => {
+                const pos = getPointerPos(e);
+                const hit = findHitBox(pos);
+                const nextHover = hit ? hit.index : null;
+
+                if (nextHover !== state.hoveredItemIndex) {
+                    state.hoveredItemIndex = nextHover;
+                    renderCanvas();
+                }
+
+                if (hit) {
+                    tooltip.style.opacity = '1';
+                    tooltip.style.left = `${Math.min(pos.x + 12, canvasWrapper.clientWidth - 170)}px`;
+                    tooltip.style.top = `${Math.max(pos.y - 45, 10)}px`;
+                    tooltip.innerHTML = `
+                        <div class="font-bold text-white">${hit.title}</div>
+                        <div class="text-slate-400 font-mono mt-0.5">尺寸: ${Math.round(hit.w)}px × ${Math.round(hit.h)}px</div>
+                    `;
+                } else {
+                    tooltip.style.opacity = '0';
+                }
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                state.hoveredItemIndex = null;
+                tooltip.style.opacity = '0';
+                renderCanvas();
+            });
+
+            const handleSelect = (e) => {
+                const pos = getPointerPos(e);
+                const hit = findHitBox(pos);
+                state.selectedItemIndex = hit ? hit.index : null;
+                renderCanvas();
+
+                if (hit) {
+                    document.getElementById('concept-title').textContent = `已選取元素：${hit.title}`;
+                    document.getElementById('concept-desc').textContent = `目前計算座標為 X: ${Math.round(hit.x)}px, Y: ${Math.round(hit.y)}px，實際渲染尺寸為 ${Math.round(hit.w)}px × ${Math.round(hit.h)}px。變更容器對齊或拉伸 (stretch) 屬性可即時觀察尺寸變化！`;
+                }
+            };
+
+            canvas.addEventListener('click', handleSelect);
+            canvas.addEventListener('touchstart', handleSelect, { passive: true });
+        }
+
+        // ==========================================
+        // 7. 剪貼簿複製與提示訊息
+        // ==========================================
+        function copyCSS() {
+            const codeText = document.getElementById('css-output').textContent;
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('CSS 程式碼已成功複製到剪貼簿！');
+            } catch (err) {
+                showToast('複製失敗，請手動選取複製');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>

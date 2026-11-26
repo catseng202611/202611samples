@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      h1 {
+        color: rgb(255 0 0 / 100%);
+      }
+      h2 {
+        color: #756992;
+      }
+      h3 {
+        color: #429533;
+      }
+      h4 {
+        color: #875969;
+      }
+      h5 {
+        color: #63ab1c;
+      }
+      h6 {
+        color: #345d67;
+      }
+      p {
+        color: #695c29;
+      }
+      .notice {
+        font-size: 20px;
+      }
+      .bg {
+        background-color: #f0f0f0;
+      }
+      #h1 {
+        font-size: 30px;
+      }
+      h1,
+      h2,
+      p {
+        font-family: "微軟正黑體", "Microsoft JhengHei", sans-serif;
+      }
+
+      article p {
+        font-style: italic;
+      }
+      article > p {
+        font-weight: bold;
+      }
+      article li {
+        font-size: 18px;
+        color:#429533;
+      }
+      [placeholder="請輸入文字"] {
+        font-size: 18px;
+        color: #9c3971;
+      }
+    </style>
+  </head>
+  <body>
+    <input type="text" placeholder="請輸入文字" value="預設文字" />
+    <!-- article p -->
+    <article>
+      <div>
+        <p>article > div > p</p>
+        <ul id="ul">
+            <li>article > div > ul > li</li>
+            <li>article > div > ul > li</li>
+            <li>article > div > ul > li</li>
+        </ul>
+      </div>
+      <p>article > p</p>
+    </article>
+
+    <h1 id="h1" class="notice bg">Selector h1</h1>
+    <h2 class="notice">Selector h2</h2>
+    <h3 class="notice">Selector h3</h3>
+    <h4 class="notice">Selector h4</h4>
+    <h5 class="notice">Selector h5</h5>
+    <h6 class="notice">Selector h6</h6>
+    <p class="notice">Selector p</p>
+  </body>
+</html>

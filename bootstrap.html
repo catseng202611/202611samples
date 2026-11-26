@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bootstrap 練習</title>
+
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.9/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-yEPZ7jP9S0QKiUQ0m3jjsO4ProIW7wvR9gXkI7JOGa2XVsw53Yke2bsdkBbjmmiX"
+          crossorigin="anonymous">
+</head>
+<body class="p-3">
+
+    <!-- 文字：大小、粗體、顏色 -->
+    <h1 class="fs-2 fw-bold text-primary">
+        Hello Bootstrap
+    </h1>
+
+    <!-- 按鈕：primary | success | danger | warning -->
+    <button class="btn btn-primary">儲存</button>
+    <button class="btn btn-danger">刪除</button>
+
+    <!-- 網格：手機一欄、平板兩欄、電腦三欄 -->
+    <div class="container mt-3">
+        <div class="row g-3">
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="bg-primary text-white p-3 text-center">A</div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="bg-success text-white p-3 text-center">B</div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="bg-danger text-white p-3 text-center">C</div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

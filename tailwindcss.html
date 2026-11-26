@@ -1,0 +1,37 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tailwind CSS 練習</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="p-4">
+
+    <!-- 文字：大小、粗體、顏色 -->
+    <h1 class="text-3xl font-bold text-blue-600">
+        Hello Tailwind CSS
+    </h1>
+
+    <!-- 按鈕：背景、文字、內距、圓角、滑鼠效果 -->
+    <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">
+        儲存
+    </button>
+
+    <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700">
+        刪除
+    </button>
+
+    <!-- Grid：手機一欄、平板兩欄、電腦三欄 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+
+        <div class="bg-blue-500 text-white p-4 text-center">A</div>
+        <div class="bg-green-500 text-white p-4 text-center">B</div>
+        <div class="bg-red-500 text-white p-4 text-center">C</div>
+
+    </div>
+
+</body>
+</html>

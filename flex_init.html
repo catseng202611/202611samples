@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>Flexbox 練習</title>
+    <style>
+        .container {
+            /* 排列模式：block | flex */
+            display: flex;
+
+            /* 主軸方向：row | column | row-reverse | column-reverse */
+            flex-direction: row;
+
+            /* 主軸對齊方式：
+               flex-start | center | flex-end
+               space-between | space-around | space-evenly */
+            justify-content: center;
+
+            /* 交叉軸對齊方式：
+               flex-start | center | flex-end | stretch | baseline */
+            align-items: center;
+
+            /* 子元素之間的間距：0 | 1rem | 2rem */
+            gap: 1rem;
+
+            /* 容器高度 */
+            height: 300px;
+            background-color: #eeeeee;
+        }
+
+        .item {
+            width: 80px;
+            height: 80px;
+            background-color: steelblue;
+            color: white;
+            text-align: center;
+            font-size: 2rem;
+
+            /* 空間分配比例：取消註解觀察效果 */
+            /* flex: 1; */
+        }
+
+        .double {
+            /* 分配兩份空間：取消註解觀察效果 */
+            /* flex: 2; */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="item">A</div>
+        <div class="item double">B</div>
+        <div class="item">C</div>
+    </div>
+
+</body>
+</html>

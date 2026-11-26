@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>Grid 練習</title>
+    <style>
+        .container {
+            /* 排列模式：block | grid */
+            display: grid;
+
+            /* 欄寬與欄數：
+               1fr 1fr 1fr
+               1fr 2fr 1fr
+               100px 100px 100px
+               repeat(3, 1fr)
+               repeat(2, 1fr) */
+            grid-template-columns: repeat(3, 1fr);
+
+            /* 列高與列數：
+               100px 100px
+               1fr 1fr
+               1fr 2fr */
+            grid-template-rows: 1fr 1fr;
+
+            /* 儲存格內水平對齊：
+               start | center | end | stretch */
+            justify-items: stretch;
+
+            /* 儲存格內垂直對齊：
+               start | center | end | stretch */
+            align-items: stretch;
+
+            /* 整體 Grid 水平對齊：
+               start | center | end
+               space-between | space-around | space-evenly */
+            justify-content: center;
+
+            /* 整體 Grid 垂直對齊：
+               start | center | end
+               space-between | space-around | space-evenly */
+            align-content: center;
+
+            /* 儲存格之間的間距：0 | 1rem | 2rem */
+            gap: 1rem;
+
+            height: 300px;
+            background-color: #eeeeee;
+        }
+
+        .item {
+            background-color: steelblue;
+            color: white;
+            text-align: center;
+            font-size: 2rem;
+        }
+
+        .double {
+            /* 橫跨兩欄：取消註解觀察效果 */
+            /* grid-column: span 2; */
+
+            /* 橫跨兩列：取消註解觀察效果 */
+            /* grid-row: span 2; */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="item">A</div>
+        <div class="item double">B</div>
+        <div class="item">C</div>
+        <div class="item">D</div>
+        <div class="item">E</div>
+        <div class="item">F</div>
+    </div>
+
+</body>
+</html>

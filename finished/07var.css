@@ -1,0 +1,5 @@
+:root { --main-color: #726fac; }
+h1 { color: var(--main-color); }
+button {
+  background: var(--main-color);
+}
